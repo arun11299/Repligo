@@ -1,0 +1,39 @@
+# Copyright 2021 Arun Muralidharan
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Start from the latest golang base image
+FROM golang:latest as builder
+
+# Set the Current Working Directory inside the container
+WORKDIR /repligo
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
+RUN go mod download
+
+# Copy the source from the current directory to the Working Directory inside the container
+COPY . .
+
+# Build the Go app
+RUN go test -c test/mongo/mongo_sync_test.go
+
+######## Start a new stage from scratch #######
+FROM golang:latest
+
+WORKDIR /repligo
+
+# Copy the Pre-built binary file from the previous stage
+COPY --from=builder /repligo/mongo.test mongo.test
